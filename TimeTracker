@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D Date Visualizer - Nothing OS Style</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&family=VT323&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #e5e5e5;
+            --card-bg-color: #ffffff;
+            --primary-color: #ff0033;
+            --accent-gray: #1e1e1e;
+            --text-primary-color: #000000;
+            --text-secondary-color: #6e6e6e;
+            --border-color: #d0d0d0;
+            --widget-bg: #000;
+            --widget-text: #fff;
+            --widget-shadow: var(--primary-color);
+            --radius: 20px;
+            --font-main: 'Inter', 'Courier New', monospace;
+            --font-pixel: 'VT323', monospace;
+            --transition-speed: 0.3s;
+        }
+
+        body.dark-mode {
+            --bg-color: #121212;
+            --card-bg-color: #1e1e1e;
+            --text-primary-color: #ffffff;
+            --text-secondary-color: #a0a0a0;
+            --border-color: #444444;
+            --widget-bg: #f0f0f0;
+            --widget-text: #000;
+            --widget-shadow: var(--primary-color);
+        }
+
+        body {
+            font-family: var(--font-main);
+            background-color: var(--bg-color);
+            color: var(--text-primary-color);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 1rem;
+            transition: background-color var(--transition-speed), color var(--transition-speed);
+        }
+
+        body::before {
+            content: "";
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-image: radial-gradient(var(--border-color) 1px, transparent 1px);
+            background-size: 20px 20px;
+            z-index: -1;
+            opacity: 0.3;
+        }
+
+        .container {
+            position: relative;
+            background-color: var(--card-bg-color);
+            padding: 2rem;
+            border-radius: var(--radius);
+            width: 90%;
+            max-width: 800px;
+            display: flex;
+            flex-direction: column;
+            gap: 2rem;
+            box-shadow: 0 0 0 1px var(--border-color), 0 8px 30px rgba(0, 0, 0, 0.05);
+            transition: background-color var(--transition-speed), box-shadow var(--transition-speed);
+        }
+
+        h1 {
+            font-family: var(--font-pixel);
+            font-size: 2.5rem;
+            text-align: center;
+            margin: 0 0 1rem 0;
+        }
+
+        /* Theme Toggle Switch */
+        .theme-switch-wrapper {
+            position: absolute;
+            top: 1.5rem;
+            right: 1.5rem;
+        }
+        .theme-switch {
+            display: inline-block;
+            height: 26px;
+            position: relative;
+            width: 50px;
+        }
+        .theme-switch input {
+            display:none;
+        }
+        .slider {
+            background-color: var(--accent-gray);
+            bottom: 0;
+            cursor: pointer;
+            left: 0;
+            position: absolute;
+            right: 0;
+            top: 0;
+            transition: .4s;
+            border-radius: 34px;
+        }
+        .slider:before {
+            background-color: var(--card-bg-color);
+            bottom: 4px;
+            content: "";
+            height: 18px;
+            left: 4px;
+            position: absolute;
+            transition: .4s;
+            width: 18px;
+            border-radius: 50%;
+        }
+        input:checked + .slider {
+            background-color: var(--primary-color);
+        }
+        input:checked + .slider:before {
+            transform: translateX(24px);
+        }
+
+        .controls-container {
+            display: flex;
+            gap: 1.5rem;
+            align-items: center;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .date-input-group {
+            flex: 1;
+            min-width: 200px;
+        }
+        
+        .date-input-group label {
+            font-weight: 600;
+            color: var(--text-secondary-color);
+            display: block;
+            margin-bottom: 0.5rem;
+            font-size: 0.9rem;
+        }
+
+        .date-input-group input {
+            font-family: var(--font-main);
+            background: var(--bg-color);
+            border: none;
+            padding: 0.75rem 1rem;
+            font-size: 0.9rem;
+            border-radius: 12px;
+            box-shadow: inset 0 0 0 1px var(--border-color);
+            color: var(--text-primary-color);
+            width: 100%;
+            box-sizing: border-box;
+            transition: background-color var(--transition-speed), box-shadow var(--transition-speed);
+        }
+        
+        body.dark-mode input[type="datetime-local"]::-webkit-calendar-picker-indicator {
+           filter: invert(1);
+        }
+
+        #calculateBtn {
+            background: var(--accent-gray);
+            color: var(--primary-color);
+            font-weight: bold;
+            padding: 0.75rem 1.5rem;
+            border: 2px solid var(--primary-color);
+            border-radius: 9999px;
+            cursor: pointer;
+            font-family: var(--font-pixel);
+            font-size: 1.2rem;
+            text-transform: uppercase;
+            transition: background-color var(--transition-speed), color var(--transition-speed);
+            margin-top: 1.5rem;
+        }
+
+        #calculateBtn:hover {
+            background-color: var(--primary-color);
+            color: var(--accent-gray);
+        }
+
+        .duration-display {
+            display: flex;
+            justify-content: center;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .time-unit {
+            background: var(--widget-bg);
+            color: var(--widget-text);
+            padding: 1rem;
+            border-radius: 16px;
+            width: 90px;
+            height: 90px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            font-family: var(--font-pixel);
+            box-shadow: 3px 3px 0 var(--widget-shadow);
+            border: 1px solid #444;
+            transition: background-color var(--transition-speed), color var(--transition-speed), box-shadow var(--transition-speed);
+        }
+
+        .time-unit span {
+            font-size: 2rem;
+            line-height: 1;
+        }
+
+        .time-unit p {
+            font-size: 0.8rem;
+            margin: 0.25rem 0 0 0;
+            color: var(--widget-text);
+            opacity: 0.7;
+            text-transform: uppercase;
+        }
+        
+        .chart-container {
+            height: 300px;
+            position: relative;
+        }
+
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="theme-switch-wrapper">
+            <label class="theme-switch" for="themeToggle">
+                <input type="checkbox" id="themeToggle" />
+                <div class="slider round"></div>
+            </label>
+        </div>
+        <h1>DURATION VISUALIZER</h1>
+        
+        <div class="controls-container">
+            <div class="date-input-group">
+                <label for="startDatePicker">Start Date</label>
+                <input type="datetime-local" id="startDatePicker">
+            </div>
+            <div class="date-input-group">
+                <label for="endDatePicker">End Date</label>
+                <input type="datetime-local" id="endDatePicker">
+            </div>
+            <button id="calculateBtn">Calculate</button>
+        </div>
+
+        <div class="duration-display">
+            <div class="time-unit"><span id="years">0</span><p>Years</p></div>
+            <div class="time-unit"><span id="months">0</span><p>Months</p></div>
+            <div class="time-unit"><span id="days">0</span><p>Days</p></div>
+            <div class="time-unit"><span id="hours">0</span><p>Hours</p></div>
+            <div class="time-unit"><span id="minutes">0</span><p>Minutes</p></div>
+            <div class="time-unit"><span id="seconds">0</span><p>Seconds</p></div>
+        </div>
+        
+        <div class="chart-container">
+            <canvas id="durationChart"></canvas>
+        </div>
+    </div>
+
+    <script>
+        // --- DOM Elements ---
+        const startDatePicker = document.getElementById('startDatePicker');
+        const endDatePicker = document.getElementById('endDatePicker');
+        const calculateBtn = document.getElementById('calculateBtn');
+        const themeToggle = document.getElementById('themeToggle');
+
+        // --- Chart & Data ---
+        let durationChart;
+        let totalDays = 0;
+        
+        const chartColors = {
+            light: {
+                backgroundColor: ['#333333', '#666666', '#999999', '#cccccc', '#f0f0f0', '#ff0033'],
+                borderColor: '#ffffff',
+                textColor: '#000000',
+                gridColor: '#e0e0e0',
+            },
+            dark: {
+                backgroundColor: ['#f0f0f0', '#cccccc', '#999999', '#666666', '#333333', '#ff0033'],
+                borderColor: '#1e1e1e',
+                textColor: '#ffffff',
+                gridColor: '#444444',
+            }
+        };
+        
+        // --- ChartJS Plugin to draw text in center ---
+        const doughnutText = {
+            id: 'doughnutText',
+            afterDraw(chart, args, options) {
+                const { ctx, width, height } = chart;
+                ctx.restore();
+                
+                const isDarkMode = document.body.classList.contains('dark-mode');
+                const colors = chartColors[isDarkMode ? 'dark' : 'light'];
+
+                ctx.font = `bold 2.5rem ${getComputedStyle(document.body).getPropertyValue('--font-pixel')}`;
+                ctx.fillStyle = colors.textColor;
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                const text = `${Math.round(totalDays)}`;
+                ctx.fillText(text, width / 2, height / 2 - 10);
+                
+                ctx.font = `1rem ${getComputedStyle(document.body).getPropertyValue('--font-pixel')}`;
+                ctx.fillStyle = getComputedStyle(document.body).getPropertyValue('--text-secondary-color');
+                ctx.fillText('TOTAL DAYS', width / 2, height / 2 + 25);
+                
+                ctx.save();
+            }
+        };
+
+        // --- Functions ---
+        function initializeChart() {
+            const ctx = document.getElementById('durationChart').getContext('2d');
+            const initialTheme = document.body.classList.contains('dark-mode') ? 'dark' : 'light';
+            
+            durationChart = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Years', 'Months', 'Days', 'Hours', 'Minutes', 'Seconds'],
+                    datasets: [{
+                        label: 'Duration',
+                        data: [0, 0, 0, 0, 0, 0],
+                        backgroundColor: chartColors[initialTheme].backgroundColor,
+                        borderColor: chartColors[initialTheme].borderColor,
+                        borderWidth: 5,
+                        hoverOffset: 20,
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    cutout: '60%',
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            backgroundColor: '#000',
+                            titleColor: '#fff',
+                            bodyColor: '#fff',
+                            displayColors: false,
+                            padding: 10,
+                            bodyFont: { family: "'VT323', monospace", size: 16 }
+                        }
+                    },
+                },
+                plugins: [doughnutText]
+            });
+        }
+
+        function calculateAndVisualize() {
+            const startDate = new Date(startDatePicker.value);
+            const endDate = new Date(endDatePicker.value);
+
+            if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) { return; }
+            if (endDate < startDate) {
+                resetVisualizer();
+                return;
+            }
+            
+            totalDays = (endDate - startDate) / (1000 * 60 * 60 * 24);
+
+            let years = endDate.getFullYear() - startDate.getFullYear();
+            let months = endDate.getMonth() - startDate.getMonth();
+            let days = endDate.getDate() - startDate.getDate();
+            let hours = endDate.getHours() - startDate.getHours();
+            let minutes = endDate.getMinutes() - startDate.getMinutes();
+            let seconds = endDate.getSeconds() - startDate.getSeconds();
+
+            if (seconds < 0) { minutes--; seconds += 60; }
+            if (minutes < 0) { hours--; minutes += 60; }
+            if (hours < 0) { days--; hours += 24; }
+            if (days < 0) {
+                months--;
+                const lastDay = new Date(endDate.getFullYear(), endDate.getMonth(), 0).getDate();
+                days += lastDay;
+            }
+            if (months < 0) { years--; months += 12; }
+
+            document.getElementById('years').textContent = years;
+            document.getElementById('months').textContent = months;
+            document.getElementById('days').textContent = days;
+            document.getElementById('hours').textContent = hours;
+            document.getElementById('minutes').textContent = minutes;
+            document.getElementById('seconds').textContent = seconds;
+
+            updateChartData([years, months, days, hours, minutes, seconds]);
+        }
+        
+        function updateChartData(data) {
+            if (durationChart) {
+                durationChart.data.datasets[0].data = data;
+                durationChart.update();
+            }
+        }
+        
+        function updateChartTheme() {
+            if (!durationChart) return;
+            const currentTheme = document.body.classList.contains('dark-mode') ? 'dark' : 'light';
+            const colors = chartColors[currentTheme];
+
+            durationChart.data.datasets[0].backgroundColor = colors.backgroundColor;
+            durationChart.data.datasets[0].borderColor = colors.borderColor;
+            durationChart.update();
+        }
+
+        function resetVisualizer() {
+            ['years', 'months', 'days', 'hours', 'minutes', 'seconds'].forEach(id => {
+                document.getElementById(id).textContent = '0';
+            });
+            totalDays = 0;
+            updateChartData([0, 0, 0, 0, 0, 0]);
+        }
+        
+        function setDefaultDates(){
+            const now = new Date();
+            const startDefault = new Date(now.getFullYear(), 0, 1, 0, 0); 
+            const endDefault = new Date();
+
+            const toLocalISOString = date => {
+                const z = n => ('0' + n).slice(-2);
+                return `${date.getFullYear()}-${z(date.getMonth() + 1)}-${z(date.getDate())}T${z(date.getHours())}:${z(date.getMinutes())}`;
+            }
+
+            startDatePicker.value = toLocalISOString(startDefault);
+            endDatePicker.value = toLocalISOString(endDefault);
+        }
+        
+        function toggleTheme() {
+            document.body.classList.toggle('dark-mode');
+            const isDarkMode = document.body.classList.contains('dark-mode');
+            localStorage.setItem('theme', isDarkMode ? 'dark' : 'light');
+            updateChartTheme();
+        }
+
+        // --- Event Listeners & Initialization ---
+        calculateBtn.addEventListener('click', calculateAndVisualize);
+        themeToggle.addEventListener('change', toggleTheme);
+        
+        window.onload = () => {
+            const savedTheme = localStorage.getItem('theme');
+            if (savedTheme === 'dark') {
+                themeToggle.checked = true;
+                document.body.classList.add('dark-mode');
+            }
+            
+            initializeChart();
+            setDefaultDates();
+            calculateAndVisualize(); 
+        };
+    </script>
+</body>
+</html>
